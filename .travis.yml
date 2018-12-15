@@ -5,11 +5,11 @@ addons:
       - $(git ls-files -o --directory | tr "\n" ":")
 stages:
   - name: lint
-    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$
+    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$ OR branch =~ concat("^(",env(TRAVIS_BRANCHES),")$")
   - name: compile
-    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$
+    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$ OR branch =~ concat("^(",env(TRAVIS_BRANCHES),")$")
   - name: test
-    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$
+    if: branch = master OR branch =~ ^\d+\.\d+\.\d+$ OR branch =~ concat("^(",env(TRAVIS_BRANCHES),")$")
   - name: deploy
     if: branch =~ ^\d+\.\d+\.\d+$
 jobs:
