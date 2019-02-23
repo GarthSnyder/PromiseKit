@@ -135,8 +135,8 @@ firstly {
 }
 ```
 
-No matter the outcome of your chain—-failure or success—-your `ensure`
-handler is always called.
+No matter the outcome of your chain—-failure or success—-`ensure`
+handlers are always called.
 
 Let’s compare this pattern with its completion handler equivalent:
 
@@ -166,7 +166,7 @@ using promises. You almost won’t need to review the pull requests.
 > *Note*: PromiseKit has perhaps capriciously switched between the names `always`
 and `ensure` for this function several times in the past. Sorry about this. We suck.
 
-You can also use `finally` as an `ensure` that terminates the promise chain and does not return a value:
+After a `catch` handler, you can use `finally` as an `ensure` that terminates the promise chain and does not return a value:
 
 ```
 spinner(visible: true)
@@ -182,6 +182,7 @@ firstly {
 }
 ```
 
+`finally` and `ensure` are functionally identical, but `finally` can appear only after `catch`.
 
 # `when`
 

@@ -67,18 +67,6 @@ No. Every promise handler retains its promise until the handler is executed. Onc
 all handlers have been executed, the promise is deallocated. So you only need to retain
 the promise if you need to refer to its final value after its chain has completed.
 
-## Where should I put my `catch`?
-
-`catch` deliberately terminates the chain. You should put it low in your promise
-hierarchy at a point as close to the root as possible. Typically, this would be 
-somewhere such as a view controller, where your `catch` can then display a message
-to the user.
-
-This means you should be writing one catch for many `then`s and returning
-promises that do not have internal `catch` handlers of their own.
-
-This is obviously a guideline; do what is necessary.
-
 ## How do branched chains work?
 
 Suppose you have a promise:
@@ -136,8 +124,48 @@ when(fulfilled: p1, p2).catch { error in
 }
 ```
 
-> It's worth noting that you can add multiple `catch` handlers to a promise, too.
-> And indeed, both will be called if the chain is rejected.
+## Where should I `catch` errors?
+
+`catch` deliberately terminates a chain (modulo `finally`, which can appear after it).
+So, the short but not very helpful answer is that you should (and can only) `catch` errors
+at the very end of a promise chain.
+
+In practice, you can split a chain wherever you like to achieve the effect of an interior
+`catch` handler. Here's what that looks like:
+
+```swift
+func fetchAvatar(user: User) -> Promise<UIImage> {
+    let fetchPromise = Promise { seal in
+        downloadAvatar(user, seal.resolve)
+    }
+    fetchPromise.catch {
+        // Clean up failed download
+    }.finally {
+        // Remove cache files, turn off activity indicator
+    }
+    return fetchPromise
+}
+```
+
+This function returns an un-`catch`ed promise, in the sense that an error at any
+point in the chain will cause the returned promise to reject. The `catch` clause that 
+this function sneaks in on the side will be called for exceptions that occur at this level
+or lower, but not for errors thrown by links that the caller later adds to the chain. The
+`finally` clause will always run, regardless of how the promise resolves or
+where an error originates.
+
+Since the `catch` handlers are on different branches, they have no effect on one another.
+The promise returned by this function behaves *exactly* as if there were no side branch
+with its own `catch` handler. Similarly, it's irrelevant to the local `catch` handler that some
+higher-level construct might also catch rejections. (If you *do* want hierarchical
+bubbling of exceptions, you need `recover`, not `catch`. But you probably don't.)
+
+Generally speaking, you should be writing one `catch` for many `then`s and returning
+promises that do not have internal `catch` handlers of their own. Defer error handling 
+to the highest possible layer of your application. Typically, this is something like
+a view controller, where your `catch` can then display a message to the user.
+
+This is obviously a guideline; do what is necessary.
 
 ## Is PromiseKit “heavy”?
 
