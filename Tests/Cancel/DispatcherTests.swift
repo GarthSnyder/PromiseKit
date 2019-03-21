@@ -97,14 +97,14 @@ class DispatcherTests: XCTestCase {
         let ex1 = expectation(description: "DispatchQueue MapValues compatibility")
         Promise.value([42, 52]).cancellize().then(on: .global(qos: .background), flags: .barrier) { v -> Promise<[Int]> in
             Promise.value(v)
-        }.compactMap(on: .global(qos: .background), flags: .barrier) {
-            $0
-        }.mapValues(on: .global(qos: .background), flags: .barrier) {
-            $0 + 10
-        }.flatMapValues(on: .global(qos: .background), flags: .barrier) {
-            [$0 + 10]
-        }.compactMapValues(on: .global(qos: .background), flags: .barrier) {
-            $0 + 10
+        }.compactMap(on: .global(qos: .background), flags: .barrier) { v -> [Int] in
+            v
+        }.mapValues(on: .global(qos: .background), flags: .barrier) { v -> Int in
+            v + 10
+        }.flatMapValues(on: .global(qos: .background), flags: .barrier) { v -> [Int] in
+            [v + 10]
+        }.compactMapValues(on: .global(qos: .background), flags: .barrier) { v -> Int in
+            v + 10
         }.thenMap(on: .global(qos: .background), flags: .barrier) { v -> CancellablePromise<Int> in
             Promise.value(v + 10).cancellize()
         }.thenMap(on: .global(qos: .background), flags: .barrier) { v -> Promise<Int> in
