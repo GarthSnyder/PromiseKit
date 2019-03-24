@@ -16,7 +16,7 @@ public extension CatchMixin {
      
      - Parameter on: The dispatcher that executes the provided closure.
      - Parameter policy: The default policy does not execute your handler for cancellation errors.
-     - Parameter execute: The handler to execute if this promise is rejected.
+     - Parameter body: The handler to execute if this promise is rejected.
      - Returns: A promise finalizer.
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
@@ -48,10 +48,11 @@ public extension CatchMixin {
      of a chain. Often utility promises will not have a catch, instead
      delegating the error handling to the caller.
 
-     - Parameter only: The specific error to be caught and handled.
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter execute: The handler to execute if this promise is rejected with the provided error.
-     - Note: Since this method handles only specific errors, supplying a `CatchPolicy` is unsupported. You can instead specify e.g. your cancellable error.
+     - Parameter only: The specific error to be caught and handled (e.g., `PMKError.emptySequence`).
+     - Parameter on: The dispatcher that executes the provided closure.
+     - Parameter body: The handler to execute if this promise is rejected with the provided error.
+     - Returns: A promise finalizer that accepts additional `catch` clauses.
+     - Note: Since this method handles only specific errors, supplying a `CatchPolicy` is unsupported.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func `catch`<E: Swift.Error>(_ only: E, on: Dispatcher = conf.D.return, _ body: @escaping() -> Void) -> PMKCascadingFinalizer where E: Equatable {
@@ -80,9 +81,12 @@ public extension CatchMixin {
      of a chain. Often utility promises will not have a catch, instead
      delegating the error handling to the caller.
 
-     - Parameter only: The error type to be caught and handled.
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter execute: The handler to execute if this promise is rejected with the provided error type.
+     - Parameter only: The error type to be caught and handled (e.g., `PMKError`).
+     - Parameter on: The dispatcher that executes the provided closure.
+     - Parameter policy: A `CatchPolicy` that further constrains the errors this handler will see. E.g., if
+         you are receiving `PMKError` errors, do you want to see even those that result from cancellation?
+     - Parameter body: The handler to execute if this promise is rejected with the provided error type.
+     - Returns: A promise finalizer that accepts additional `catch` clauses.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func `catch`<E: Swift.Error>(_ only: E.Type, on: Dispatcher = conf.D.return, policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) -> Void) -> PMKCascadingFinalizer {
@@ -129,9 +133,9 @@ public class PMKCascadingFinalizer {
      of a chain. Often utility promises will not have a catch, instead
      delegating the error handling to the caller.
 
-     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter on: The dispatcher that executes the provided closure.
      - Parameter policy: The default policy does not execute your handler for cancellation errors.
-     - Parameter execute: The handler to execute if this promise is rejected.
+     - Parameter body: The handler to execute if this promise is rejected.
      - Returns: A promise finalizer.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
@@ -150,9 +154,10 @@ public class PMKCascadingFinalizer {
      of a chain. Often utility promises will not have a catch, instead
      delegating the error handling to the caller.
 
-     - Parameter only: The specific error to be caught and handled.
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter execute: The handler to execute if this promise is rejected with the provided error.
+     - Parameter only: The specific error to be caught and handled (e.g., `PMKError.emptySequence`).
+     - Parameter on: The dispatcher that executes the provided closure.
+     - Parameter body: The handler to execute if this promise is rejected with the provided error.
+     - Returns: A promise finalizer that accepts additional `catch` clauses.
      - Note: Since this method handles only specific errors, supplying a `CatchPolicy` is unsupported. You can instead specify e.g. your cancellable error.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
@@ -170,9 +175,10 @@ public class PMKCascadingFinalizer {
      of a chain. Often utility promises will not have a catch, instead
      delegating the error handling to the caller.
 
-     - Parameter only: The error type to be caught and handled.
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter execute: The handler to execute if this promise is rejected with the provided error type.
+     - Parameter only: The error type to be caught and handled (e.g., `PMKError`).
+     - Parameter on: The dispatcher that executes the provided closure.
+     - Parameter body: The handler to execute if this promise is rejected with the provided error type.
+     - Returns: A promise finalizer that accepts additional `catch` clauses.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     public func `catch`<E: Swift.Error>(_ only: E.Type, on: Dispatcher = conf.D.return, policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) -> Void) -> PMKCascadingFinalizer {
