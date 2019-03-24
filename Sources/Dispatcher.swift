@@ -399,7 +399,17 @@ public extension Thenable where T: Sequence, T.Iterator.Element: Comparable {
     }
 }
 
-public extension CatchMixin {
+public protocol CatchWrappers {
+    associatedtype Finalizer
+    associatedtype CascadingFinalizer
+    // Base methods
+    func `catch`(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) -> Void) -> Finalizer
+    func `catch`<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> CascadingFinalizer where E: Equatable
+    func `catch`<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) -> Void) -> CascadingFinalizer
+}
+
+public extension CatchWrappers {
+    
     /**
      The provided closure executes when this promise rejects.
      
@@ -416,11 +426,11 @@ public extension CatchMixin {
      - SeeAlso: [Cancellation](http://https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation/docs/)
      */
     @discardableResult
-    func `catch`(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(Error) -> Void) -> PMKFinalizer {
+    func `catch`(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(Error) -> Void) -> Finalizer {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.return, flags: flags)
         return `catch`(on: dispatcher, policy: policy, body)
     }
-
+    
     /**
      The provided closure executes when this promise rejects with the specific error passed in. A final `catch` is still required at the end of the chain.
      
@@ -437,12 +447,12 @@ public extension CatchMixin {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func `catch`<E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping() -> Void)
-        -> PMKCascadingFinalizer where E: Equatable
+        -> CascadingFinalizer where E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.return, flags: flags)
         return `catch`(only, on: dispatcher, body)
     }
-
+    
     /**
      The provided closure executes when this promise rejects with an error of the type passed in. A final `catch` is still required at the end of the chain.
      
@@ -455,16 +465,28 @@ public extension CatchMixin {
      - Parameter on: The queue to which the provided closure dispatches.
      - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter policy: A `CatchPolicy` that further constrains the errors this handler will see. E.g., if
-         you are receiving `PMKError` errors, do you want to see even those that result from cancellation?
+     you are receiving `PMKError` errors, do you want to see even those that result from cancellation?
      - Parameter body: The handler to execute if this promise is rejected with the provided error type.
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func `catch`<E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) -> Void) -> PMKCascadingFinalizer
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) -> Void) -> CascadingFinalizer
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.return, flags: flags)
         return `catch`(only, on: dispatcher, policy: policy, body)
     }
+    
+}
+
+// Ideally, we would just conform CatchMixin to CatchWrappers in an extension. However, Swift (as of v5)
+// does not allow protocol extension that add conformance to other protocols. The underlying issue is the risk
+// of overlapping conformances. See https://goo.gl/rViwWS. The workaround is to declare conformance on each
+// underlying object separately.
+
+extension Promise: CatchWrappers {}
+extension PMKCascadingFinalizer: CatchWrappers {}
+
+public extension CatchMixin {
 
     /**
      The provided closure executes when this promise rejects.
@@ -909,27 +931,10 @@ public extension CancellableThenable where U.T: Sequence, U.T.Iterator.Element: 
     }
 }
 
+extension CancellablePromise: CatchWrappers {}
+
 public extension CancellableCatchMixin {
-    /**
-     The provided closure executes when this cancellable promise rejects.
-     
-     Rejecting a promise cascades: rejecting all subsequent promises (unless
-     recover is invoked) thus you will typically place your catch at the end
-     of a chain. Often utility promises will not have a catch, instead
-     delegating the error handling to the caller.
-     
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter policy: The default policy does not execute your handler for cancellation errors.
-     - Parameter body: The handler to execute if this promise is rejected.
-     - Returns: A promise finalizer.
-     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documentation/CommonPatterns.md#cancellation)
-     */
-    @discardableResult
-    func `catch`(on: DispatchQueue? = conf.Q.return, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(Error) -> Void) -> CancellableFinalizer {
-        let dispatcher = selectDispatcher(given: on, configured: conf.D.return, flags: flags)
-        return `catch`(on: dispatcher, policy: policy, body)
-    }
-    
+
     /**
      The provided closure executes when this cancellable promise rejects with the specific error passed in. A final `catch` is still required at the end of the chain.
 
