@@ -1,21 +1,20 @@
 import Dispatch
 
 public protocol RecoverWrappers {
-    associatedtype Z
-    associatedtype BaseOfZ
-    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfZ where U.T == Z
-    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfZ where U.T == Z, E: Equatable
-    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfZ where U.T == Z
+    associatedtype T
+    associatedtype BaseOfT
+    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
+    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
+    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
 }
 
 extension Promise: RecoverWrappers {
-    public typealias Z = T
-    public typealias BaseOfZ = Promise<Z>
+    public typealias BaseOfT = Promise<T>
 }
 
 extension CancellablePromise: RecoverWrappers {
-    public typealias Z = C.T
-    public typealias BaseOfZ = CancellablePromise<Z>
+    public typealias T = C.T
+    public typealias BaseOfT = CancellablePromise<C.T>
 }
 
 public protocol RecoverWrappersV {  // Void base type
@@ -55,7 +54,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     func recover<U: Thenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy,
-        _ body: @escaping(Error) throws -> U) -> BaseOfZ where U.T == Z
+        _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, policy: policy, body)
@@ -81,7 +80,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> U) -> BaseOfZ where U.T == Z, E: Equatable
+        _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
@@ -109,7 +108,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfZ where U.T == Z
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, policy: policy, body)
