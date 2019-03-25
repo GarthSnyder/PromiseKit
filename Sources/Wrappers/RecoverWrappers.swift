@@ -1,39 +1,36 @@
 import Dispatch
 
 public protocol RecoverWrappers {
-    
-    associatedtype BaseOfT
     associatedtype Z
-
-    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == Z
-    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == Z, E: Equatable
-    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == Z
-    func recover(on: Dispatcher, _ body: @escaping(Error) -> Guarantee<Z>) -> Guarantee<Z>
+    associatedtype BaseOfZ
+    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfZ where U.T == Z
+    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfZ where U.T == Z, E: Equatable
+    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfZ where U.T == Z
 }
 
 extension Promise: RecoverWrappers {
     public typealias Z = T
-    public typealias BaseOfT = Promise<Z>
+    public typealias BaseOfZ = Promise<Z>
 }
 
-//extension CancellablePromise: RecoverWrappers {
-//    public typealias Z = C.T
-//    public typealias BaseOfT = CancellablePromise<C.T>
-//}
+extension CancellablePromise: RecoverWrappers {
+    public typealias Z = C.T
+    public typealias BaseOfZ = CancellablePromise<Z>
+}
 
-public protocol RecoverWrappersVoid {
-    
+public protocol RecoverWrappersV {  // Void base type
     associatedtype BaseOfVoid
-
     func recover(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
     func recover<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
     func recover<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
-    func recover(on: Dispatcher, _ body: @escaping(Error) -> Void) -> Guarantee<Void>
-    
 }
 
-extension Promise: RecoverWrappersVoid where T == Void {
+extension Promise: RecoverWrappersV where T == Void {
     public typealias BaseOfVoid = Promise<Void>
+}
+
+extension CancellablePromise: RecoverWrappersV where C.T == Void {
+    public typealias BaseOfVoid = CancellablePromise<Void>
 }
 
 public extension RecoverWrappers {
@@ -58,7 +55,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     func recover<U: Thenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy,
-        _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == Z
+        _ body: @escaping(Error) throws -> U) -> BaseOfZ where U.T == Z
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, policy: policy, body)
@@ -84,7 +81,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> U) -> BaseOfT where U.T == Z, E: Equatable
+        _ body: @escaping() -> U) -> BaseOfZ where U.T == Z, E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
@@ -112,52 +109,15 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == Z
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfZ where U.T == Z
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, policy: policy, body)
     }
-    
-    /**
-     The provided closure executes when this promise rejects.
-     This variant of `recover` requires the handler to return a Guarantee; your closure cannot `throw`.
-     
-     It is logically impossible for this variant to accept a `catchPolicy`. All errors will be presented
-     to your closure for processing.
-     
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
-     - Parameter body: The handler to execute if this promise is rejected.
-     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
-     */
-    @discardableResult
-    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Guarantee<Z>) -> Guarantee<Z> {
-        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
-        return recover(on: dispatcher, body)
-    }
-
 }
 
-public extension RecoverWrappersVoid {
-
-    /**
-     The provided closure executes when this promise rejects.
-     
-     This variant of `recover` is specialized for `Void` promises and de-errors your chain,
-     returning a `Guarantee`. Thus, you cannot `throw` and you must handle all error types,
-     including cancellation.
-     
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
-     - Parameter body: The handler to execute if this promise is rejected.
-     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
-     */
-    @discardableResult
-    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Void) -> Guarantee<Void> {
-        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
-        return recover(on: dispatcher, body)
-    }
-
+public extension RecoverWrappersV {
+    
     /**
      The provided closure executes when this promise rejects.
      
@@ -171,7 +131,7 @@ public extension RecoverWrappersVoid {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy,
-        _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
+                 _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, policy: policy, body)
@@ -191,12 +151,12 @@ public extension RecoverWrappersVoid {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
+                                 _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
     }
-
+    
     /**
      The provided closure executes when this promise rejects with an error of the type passed in.
      
@@ -211,10 +171,138 @@ public extension RecoverWrappersVoid {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
+                                 policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, policy: policy, body)
     }
+}
 
+public extension Promise {
+    
+    /**
+     The provided closure executes when this promise rejects.
+     This variant of `recover` requires the handler to return a Guarantee; your closure cannot `throw`.
+     
+     It is logically impossible for this variant to accept a `catchPolicy`. All errors will be presented
+     to your closure for processing.
+     
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter body: The handler to execute if this promise is rejected.
+     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
+     */
+    @discardableResult
+    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Guarantee<T>) -> Guarantee<T> {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return recover(on: dispatcher, body)
+    }
+}
+
+public extension Promise where T == Void {
+    
+    /**
+     The provided closure executes when this promise rejects.
+     
+     This variant of `recover` is specialized for `Void` promises and de-errors your chain,
+     returning a `Guarantee`. Thus, you cannot `throw` and you must handle all error types,
+     including cancellation.
+     
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter body: The handler to execute if this promise is rejected.
+     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
+     */
+    @discardableResult
+    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Void) -> Guarantee<Void> {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return recover(on: dispatcher, body)
+    }
+}
+
+public extension CancellablePromise {
+    
+    /**
+     The provided closure executes when this cancellable promise rejects.
+     
+     Unlike `catch`, `recover` continues the chain. It can return a replacement promise or rethrow.
+     Use `recover` in circumstances where recovering the chain from certain errors is a possibility. For example:
+     
+         let context = firstly {
+             CLLocationManager.requestLocation()
+         }.recover { error in
+             guard error == CLError.unknownLocation else { throw error }
+             return .value(CLLocation.chicago)
+         }.cancelContext
+     
+         //…
+     
+         context.cancel()
+     
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter policy: The default policy does not execute your handler for cancellation errors.
+     - Parameter body: The handler to execute if this promise is rejected.
+     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documentation/CommonPatterns.md#cancellation)
+     */
+    func recover<V: CancellableThenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(Error) throws -> V) -> CancellablePromise<C.T> where V.U.T == C.T
+    {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return recover(on: dispatcher, policy: policy, body)
+    }
+    
+    /**
+     The provided closure executes when this cancellable promise rejects with the specific error passed in.
+     
+     Unlike `catch`, `recover` continues the chain. It can return a replacement promise or rethrow.
+     Use `recover` in circumstances where recovering the chain from certain errors is a possibility. For example:
+     
+         firstly {
+             CLLocationManager.requestLocation()
+         }.recover(CLError.unknownLocation) {
+             return .value(CLLocation.chicago)
+         }
+     
+     - Parameter only: The specific error to be recovered (e.g., `PMKError.emptySequence`)
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter body: The handler to execute if this promise is rejected with the provided error.
+     - Note: Since this method recovers only specific errors, supplying a `CatchPolicy` is unsupported.
+     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documentation/CommonPatterns.md#cancellation)
+     */
+    func recover<V: CancellableThenable, E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
+        _ body: @escaping() -> V) -> CancellablePromise<C.T> where V.U.T == C.T, E: Equatable
+    {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return recover(only, on: dispatcher, body)
+    }
+
+    /**
+     The provided closure executes when this cancellable promise rejects with an error of the type passed in.
+
+     Unlike `catch`, `recover` continues the chain. It can return a replacement promise or rethrow.
+     Use `recover` in circumstances where recovering the chain from certain errors is a possibility. For example:
+
+         firstly {
+             API.fetchData()
+         }.recover(FetchError.self) { error in
+             guard case .missingImage(let partialData) = error else { throw error }
+             //…
+             return .value(dataWithDefaultImage)
+         }
+
+     - Parameter only: The error type to be recovered.
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter policy: The default policy does not execute your handler for cancellation errors.
+     - Parameter body: The handler to execute if this promise is rejected with the provided error type.
+     - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documentation/CommonPatterns.md#cancellation)
+     */
+    func recover<V: CancellableThenable, E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> V) -> CancellablePromise<C.T> where V.U.T == C.T
+    {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return recover(only, on: dispatcher, policy: policy, body)
+    }
 }
