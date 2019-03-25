@@ -5,17 +5,15 @@ public protocol RecoverWrappers {
     associatedtype BaseOfT
     associatedtype Z
 
-    // Base methods
     func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == Z
     func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == Z, E: Equatable
     func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == Z
     func recover(on: Dispatcher, _ body: @escaping(Error) -> Guarantee<Z>) -> Guarantee<Z>
-
 }
 
 extension Promise: RecoverWrappers {
     public typealias Z = T
-    public typealias BaseOfT = Promise<T>
+    public typealias BaseOfT = Promise<Z>
 }
 
 //extension CancellablePromise: RecoverWrappers {
