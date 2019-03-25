@@ -3,26 +3,39 @@ import Dispatch
 public protocol RecoverWrappers {
     
     associatedtype BaseOfT
-    associatedtype BaseOfVoid
-    associatedtype T
-    
+    associatedtype Z
+
     // Base methods
-    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
-    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
-    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
-    func recover(on: Dispatcher, _ body: @escaping(Error) -> Guarantee<T>) -> Guarantee<T>
-    
-    // Methods for T == Void
-    func recover(on: Dispatcher, _ body: @escaping(Error) -> Void) -> Guarantee<Void>
-    func recover(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
-    func recover<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
-    func recover<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
-    
+    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == Z
+    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == Z, E: Equatable
+    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == Z
+    func recover(on: Dispatcher, _ body: @escaping(Error) -> Guarantee<Z>) -> Guarantee<Z>
+
 }
 
 extension Promise: RecoverWrappers {
+    public typealias Z = T
     public typealias BaseOfT = Promise<T>
-    // typealias T = T
+}
+
+//extension CancellablePromise: RecoverWrappers {
+//    public typealias Z = C.T
+//    public typealias BaseOfT = CancellablePromise<C.T>
+//}
+
+public protocol RecoverWrappersVoid {
+    
+    associatedtype BaseOfVoid
+
+    func recover(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
+    func recover<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
+    func recover<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
+    func recover(on: Dispatcher, _ body: @escaping(Error) -> Void) -> Guarantee<Void>
+    
+}
+
+extension Promise: RecoverWrappersVoid where T == Void {
+    public typealias BaseOfVoid = Promise<Void>
 }
 
 public extension RecoverWrappers {
@@ -47,7 +60,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     func recover<U: Thenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy,
-        _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
+        _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == Z
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, policy: policy, body)
@@ -73,7 +86,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
+        _ body: @escaping() -> U) -> BaseOfT where U.T == Z, E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
@@ -101,7 +114,7 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == Z
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, policy: policy, body)
@@ -120,14 +133,14 @@ public extension RecoverWrappers {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     @discardableResult
-    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Guarantee<T>) -> Guarantee<T> {
+    func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Error) -> Guarantee<Z>) -> Guarantee<Z> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, body)
     }
 
 }
 
-public extension CatchMixin where T == Void {
+public extension RecoverWrappersVoid {
 
     /**
      The provided closure executes when this promise rejects.
@@ -160,7 +173,7 @@ public extension CatchMixin where T == Void {
      - SeeAlso: [Cancellation](https://github.com/mxcl/PromiseKit/blob/master/Documents/CommonPatterns.md#cancellation)
      */
     func recover(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, policy: CatchPolicy = conf.catchPolicy,
-        _ body: @escaping(Error) throws -> Void) -> Promise<Void>
+        _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(on: dispatcher, policy: policy, body)
@@ -180,7 +193,7 @@ public extension CatchMixin where T == Void {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> Void) -> Promise<Void> where E: Equatable
+        _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
@@ -200,10 +213,10 @@ public extension CatchMixin where T == Void {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<E: Swift.Error>(_ only: E.Type, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> Void) -> Promise<Void>
+        policy: CatchPolicy = conf.catchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
-        return recover(only, on: dispatcher, body)
+        return recover(only, on: dispatcher, policy: policy, body)
     }
 
 }
