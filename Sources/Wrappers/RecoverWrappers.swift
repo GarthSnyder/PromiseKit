@@ -10,27 +10,23 @@ public protocol RecoverWrappers {
 
 extension Promise: RecoverWrappers {
     public typealias BaseOfT = Promise<T>
+    public typealias BaseOfVoid = Promise<Void>
 }
 
 extension CancellablePromise: RecoverWrappers {
-    public typealias T = C.T
-    public typealias BaseOfT = CancellablePromise<C.T>
+    public typealias BaseOfT = CancellablePromise<T>
+    public typealias BaseOfVoid = CancellablePromise<Void>
 }
 
-public protocol RecoverWrappersV {  // Void base type
+public protocol RecoverWrappersVoid {
     associatedtype BaseOfVoid
     func recover(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
     func recover<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
     func recover<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
 }
 
-extension Promise: RecoverWrappersV where T == Void {
-    public typealias BaseOfVoid = Promise<Void>
-}
-
-extension CancellablePromise: RecoverWrappersV where C.T == Void {
-    public typealias BaseOfVoid = CancellablePromise<Void>
-}
+extension Promise: RecoverWrappersVoid where T == Void {}
+extension CancellablePromise: RecoverWrappersVoid where C.T == Void {}
 
 public extension RecoverWrappers {
     
@@ -115,7 +111,7 @@ public extension RecoverWrappers {
     }
 }
 
-public extension RecoverWrappersV {
+public extension RecoverWrappersVoid {
     
     /**
      The provided closure executes when this promise rejects.
