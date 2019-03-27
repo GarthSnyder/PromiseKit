@@ -1,25 +1,6 @@
 import Dispatch
 
-public protocol CatchWrappers {
-    associatedtype Finalizer
-    associatedtype CascadingFinalizer
-    // Base methods
-    func `catch`(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) -> Void) -> Finalizer
-    func `catch`<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> CascadingFinalizer where E: Equatable
-    func `catch`<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) -> Void) -> CascadingFinalizer
-}
-
-// Ideally, we would just conform CatchMixin to CatchWrappers in an extension. However, Swift (as of v5)
-// does not allow protocol extension that add conformance to other protocols. The underlying issue is the risk
-// of overlapping conformances. See https://goo.gl/rViwWS. The workaround is to declare conformance on each
-// underlying object separately.
-
-extension Promise: CatchWrappers {}
-extension PMKCascadingFinalizer: CatchWrappers {}
-extension CancellablePromise: CatchWrappers {}
-extension CancellableCascadingFinalizer: CatchWrappers {}
-
-public extension CatchWrappers {
+public extension PMKCatchWrappers {
     
     /**
      The provided closure executes when this promise rejects.

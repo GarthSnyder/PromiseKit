@@ -1,16 +1,6 @@
 import Dispatch
 
-public protocol EnsureWrappers {
-    associatedtype BaseOfT
-    associatedtype VoidReturn
-    func ensure(on: Dispatcher, _ body: @escaping () -> Void) -> BaseOfT
-    func ensureThen(on: Dispatcher, _ body: @escaping () -> VoidReturn) -> BaseOfT
-}
-
-extension Promise: EnsureWrappers {}
-extension CancellablePromise: EnsureWrappers {}
-
-public extension EnsureWrappers {
+public extension PMKSharedWrappers {
     
     /**
      The provided closure executes when this promise resolves, whether it rejects or not.

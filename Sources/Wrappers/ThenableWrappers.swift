@@ -1,18 +1,6 @@
 import Dispatch
 
-public protocol DoneGetTapWrappers {
-    associatedtype T
-    associatedtype BaseOfT
-    associatedtype BaseOfVoid
-    func done(on: Dispatcher, _ body: @escaping(T) throws -> Void) -> BaseOfVoid
-    func get(on: Dispatcher, _ body: @escaping(T) throws -> Void) -> BaseOfT
-    func tap(on: Dispatcher, _ body: @escaping(Result<T, Error>) -> Void) -> BaseOfT
-}
-
-extension Promise: DoneGetTapWrappers {}
-extension CancellablePromise: DoneGetTapWrappers {}
-
-public extension DoneGetTapWrappers {
+public extension PMKSharedWrappers {
 
     /**
      The provided closure is executed when this promise is resolved.
@@ -55,7 +43,7 @@ public extension DoneGetTapWrappers {
      - Parameter on: The queue to which the provided closure dispatches.
      - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter body: The closure that is executed when this Promise is fulfilled.
-     - Returns: A new promise that is resolved with the value that the handler is fed. For example:
+     - Returns: A new promise that is resolved with the value that the handler is fed.
      */
     func get(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping (T) throws -> Void) -> BaseOfT {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.return, flags: flags)
@@ -72,7 +60,7 @@ public extension DoneGetTapWrappers {
      - Parameter on: The queue to which the provided closure dispatches.
      - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter body: The closure that is executed with Result of Promise.
-     - Returns: A new promise that is resolved with the result that the handler is fed. For example:
+     - Returns: A new promise that is resolved with the result that the handler is fed.
      */
     func tap(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(Result<T, Error>) -> Void) -> BaseOfT {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
@@ -80,18 +68,13 @@ public extension DoneGetTapWrappers {
     }
 }
 
-
 public extension Thenable {
     
     /**
      The provided closure executes when this promise resolves.
      
      This allows chaining promises. The promise returned by the provided closure is resolved before the promise returned by this closure resolves.
-     
-     - Parameter on: The queue to which the provided closure dispatches.
-     - Parameter body: The closure that executes when this promise fulfills. It must return a promise.
-     - Returns: A new promise that resolves when the promise returned from the provided closure resolves. For example:
-     
+
          firstly {
             URLSession.shared.dataTask(.promise, with: url1)
          }.then { response in
@@ -99,6 +82,11 @@ public extension Thenable {
          }.done { transformation in
             //…
          }
+
+     - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
+     - Parameter body: The closure that executes when this promise fulfills. It must return a promise.
+     - Returns: A new promise that resolves when the promise returned from the provided closure resolves.
      */
     func then<U: Thenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping(T) throws -> U) -> Promise<U.T> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
@@ -111,6 +99,7 @@ public extension Thenable {
      This is like `then` but it requires the closure to return a non-promise.
      
      - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter transform: The closure that is executed when this Promise is fulfilled. It must return a non-promise.
      - Returns: A new promise that is resolved with the value returned from the provided closure. For example:
      
@@ -146,32 +135,31 @@ public extension Thenable {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return compactMap(on: dispatcher, transform)
     }
-    
 }
 
 public extension CancellableThenable {
+    
     /**
      The provided closure executes when this cancellable promise resolves.
      
      This allows chaining promises. The cancellable promise returned by the provided closure is resolved before the cancellable promise returned by this closure resolves.
-     
+
+         let context = firstly {
+            URLSession.shared.dataTask(.promise, with: url1)
+         }.cancellize().then { response in
+            transform(data: response.data) // returns a CancellablePromise
+         }.done { transformation in
+            //…
+         }.cancelContext
+         //…
+         context.cancel()
+
      - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter body: The closure that executes when this cancellable promise fulfills. It must return a cancellable promise.
-     - Returns: A new cancellable promise that resolves when the promise returned from the provided closure resolves. For example:
-     
-     let context = firstly {
-     URLSession.shared.dataTask(.promise, with: url1)
-     }.cancellize().then { response in
-     transform(data: response.data) // returns a CancellablePromise
-     }.done { transformation in
-     //…
-     }.cancelContext
-     
-     //…
-     
-     context.cancel()
+     - Returns: A new cancellable promise that resolves when the promise returned from the provided closure resolves.
      */
-    func then<V: CancellableThenable>(on: DispatchQueue? = conf.Q.map, flags: DispatchWorkItemFlags? = nil, _ body: @escaping (U.T) throws -> V) -> CancellablePromise<V.U.T> {
+    func then<V: CancellableThenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping (U.T) throws -> V) -> CancellablePromise<V.U.T> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return then(on: dispatcher, body)
     }
@@ -180,24 +168,23 @@ public extension CancellableThenable {
      The provided closure executes when this cancellable promise resolves.
      
      This allows chaining promises. The promise returned by the provided closure is resolved before the cancellable promise returned by this closure resolves.
-     
+
+         let context = firstly {
+            URLSession.shared.dataTask(.promise, with: url1)
+         }.cancellize().then { response in
+            transform(data: response.data) // returns a Promise
+         }.done { transformation in
+            //…
+         }.cancelContext
+         //…
+         context.cancel()
+
      - Parameter on: The dispatcher that executes the provided closure.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter body: The closure that executes when this cancellable promise fulfills. It must return a promise (not a cancellable promise).
-     - Returns: A new cancellable promise that resolves when the promise returned from the provided closure resolves. For example:
-     
-     let context = firstly {
-     URLSession.shared.dataTask(.promise, with: url1)
-     }.cancellize().then { response in
-     transform(data: response.data) // returns a Promise
-     }.done { transformation in
-     //…
-     }.cancelContext
-     
-     //…
-     
-     context.cancel()
+     - Returns: A new cancellable promise that resolves when the promise returned from the provided closure resolves.
      */
-    func then<V: Thenable>(on: DispatchQueue? = conf.Q.map, flags: DispatchWorkItemFlags? = nil, _ body: @escaping (U.T) throws -> V) -> CancellablePromise<V.T> {
+    func then<V: Thenable>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ body: @escaping (U.T) throws -> V) -> CancellablePromise<V.T> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return then(on: dispatcher, body)
     }
@@ -207,23 +194,22 @@ public extension CancellableThenable {
      
      This is like `then` but it requires the closure to return a non-promise and non-cancellable-promise.
      
+         let context = firstly {
+            URLSession.shared.dataTask(.promise, with: url1)
+         }.cancellize().map { response in
+            response.data.length
+         }.done { length in
+            //…
+         }.cancelContext
+         //…
+         context.cancel()
+
      - Parameter on: The queue to which the provided closure dispatches.
+     - Parameter flags: `DispatchWorkItemFlags` to be applied when dispatching.
      - Parameter transform: The closure that is executed when this CancellablePromise is fulfilled. It must return a non-promise and non-cancellable-promise.
-     - Returns: A new cancellable promise that is resolved with the value returned from the provided closure. For example:
-     
-     let context = firstly {
-     URLSession.shared.dataTask(.promise, with: url1)
-     }.cancellize().map { response in
-     response.data.length
-     }.done { length in
-     //…
-     }.cancelContext
-     
-     //…
-     
-     context.cancel()
+     - Returns: A new cancellable promise that is resolved with the value returned from the provided closure.
      */
-    func map<V>(on: DispatchQueue? = conf.Q.map, flags: DispatchWorkItemFlags? = nil, _ transform: @escaping (U.T) throws -> V) -> CancellablePromise<V> {
+    func map<V>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ transform: @escaping (U.T) throws -> V) -> CancellablePromise<V> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return map(on: dispatcher, transform)
     }
@@ -231,26 +217,24 @@ public extension CancellableThenable {
     /**
      The provided closure is executed when this cancellable promise is resolved.
      
-     In your closure return an `Optional`, if you return `nil` the resulting cancellable promise is rejected with `PMKError.compactMap`, otherwise the cancellable promise is fulfilled with the unwrapped value.
+     In your closure return an `Optional`, if you return `nil` the resulting cancellable promise is rejected
+     with `PMKError.compactMap`, otherwise the cancellable promise is fulfilled with the unwrapped value.
      
-     let context = firstly {
-     URLSession.shared.dataTask(.promise, with: url)
-     }.cancellize().compactMap {
-     try JSONSerialization.jsonObject(with: $0.data) as? [String: String]
-     }.done { dictionary in
-     //…
-     }.catch {
-     // either `PMKError.compactMap` or a `JSONError`
-     }.cancelContext
-     
-     //…
-     
-     context.cancel()
+         let context = firstly {
+            URLSession.shared.dataTask(.promise, with: url)
+         }.cancellize().compactMap {
+            try JSONSerialization.jsonObject(with: $0.data) as? [String: String]
+         }.done { dictionary in
+            //…
+         }.catch {
+            // either `PMKError.compactMap` or a `JSONError`
+         }.cancelContext
+         //…
+         context.cancel()
      */
-    func compactMap<V>(on: DispatchQueue? = conf.Q.map, flags: DispatchWorkItemFlags? = nil, _ transform: @escaping (U.T) throws -> V?) -> CancellablePromise<V> {
+    func compactMap<V>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ transform: @escaping (U.T) throws -> V?) -> CancellablePromise<V> {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return compactMap(on: dispatcher, transform)
     }
-    
 }
 

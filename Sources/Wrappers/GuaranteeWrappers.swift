@@ -27,3 +27,13 @@ public extension Guarantee {
         return get(on: dispatcher, body)
     }
 }
+
+public extension Guarantee where T: Sequence {
+    
+    func thenMap<U>(on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil, _ transform: @escaping(T.Iterator.Element) -> Guarantee<U>) -> Guarantee<[U]> {
+        let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
+        return thenMap(on: dispatcher, transform)
+    }
+    
+}
+

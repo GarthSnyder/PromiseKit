@@ -1,34 +1,6 @@
 import Dispatch
 
-public protocol RecoverWrappers {
-    associatedtype T
-    associatedtype BaseOfT
-    func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
-    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
-    func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
-}
-
-extension Promise: RecoverWrappers {
-    public typealias BaseOfT = Promise<T>
-    public typealias BaseOfVoid = Promise<Void>
-}
-
-extension CancellablePromise: RecoverWrappers {
-    public typealias BaseOfT = CancellablePromise<T>
-    public typealias BaseOfVoid = CancellablePromise<Void>
-}
-
-public protocol RecoverWrappersVoid {
-    associatedtype BaseOfVoid
-    func recover(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> Void) -> BaseOfVoid
-    func recover<E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> Void) -> BaseOfVoid where E: Equatable
-    func recover<E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> Void) -> BaseOfVoid
-}
-
-extension Promise: RecoverWrappersVoid where T == Void {}
-extension CancellablePromise: RecoverWrappersVoid where C.T == Void {}
-
-public extension RecoverWrappers {
+public extension PMKSharedWrappers {
     
     /**
      The provided closure executes when this promise rejects.
@@ -111,7 +83,7 @@ public extension RecoverWrappers {
     }
 }
 
-public extension RecoverWrappersVoid {
+public extension PMKSharedVoidWrappers {
     
     /**
      The provided closure executes when this promise rejects.
@@ -173,7 +145,7 @@ public extension RecoverWrappersVoid {
     }
 }
 
-public extension Promise {
+public extension CatchMixin {
     
     /**
      The provided closure executes when this promise rejects.
@@ -194,7 +166,7 @@ public extension Promise {
     }
 }
 
-public extension Promise where T == Void {
+public extension CatchMixin where T == Void {
     
     /**
      The provided closure executes when this promise rejects.
@@ -215,7 +187,7 @@ public extension Promise where T == Void {
     }
 }
 
-public extension CancellablePromise {
+public extension CancellableCatchMixin {
     
     /**
      The provided closure executes when this cancellable promise rejects.
