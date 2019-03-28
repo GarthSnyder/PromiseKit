@@ -24,7 +24,7 @@ public protocol PMKSharedWrappers {
     func tap(on: Dispatcher, _ body: @escaping(Result<T, Error>) -> Void) -> BaseOfT
 
     func recover<U: Thenable>(on: Dispatcher, policy: CatchPolicy, _ body: @escaping(Error) throws -> U) -> BaseOfT where U.T == T
-    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
+    func recover<U: Thenable, E: Swift.Error>(_ only: E, on: Dispatcher, _ body: @escaping() throws -> U) -> BaseOfT where U.T == T, E: Equatable
     func recover<U: Thenable, E: Swift.Error>(_ only: E.Type, on: Dispatcher, policy: CatchPolicy, _ body: @escaping(E) throws -> U) -> BaseOfT where U.T == T
 
     func ensure(on: Dispatcher, _ body: @escaping () -> Void) -> BaseOfT
@@ -58,11 +58,13 @@ public protocol PMKCatchWrappers {
 }
 
 extension Promise: PMKSharedWrappers {
+    public typealias T = T
     public typealias BaseOfT = Promise<T>
     public typealias BaseOfVoid = Promise<Void>
 }
 
 extension CancellablePromise: PMKSharedWrappers {
+    public typealias T = T
     public typealias BaseOfT = CancellablePromise<T>
     public typealias BaseOfVoid = CancellablePromise<Void>
 }

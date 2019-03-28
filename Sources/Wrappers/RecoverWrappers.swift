@@ -48,7 +48,7 @@ public extension PMKSharedWrappers {
      - SeeAlso: [Cancellation](http://promisekit.org/docs/)
      */
     func recover<U: Thenable, E: Swift.Error>(_ only: E, on: DispatchQueue? = .pmkDefault, flags: DispatchWorkItemFlags? = nil,
-        _ body: @escaping() -> U) -> BaseOfT where U.T == T, E: Equatable
+        _ body: @escaping() throws -> U) -> BaseOfT where U.T == T, E: Equatable
     {
         let dispatcher = selectDispatcher(given: on, configured: conf.D.map, flags: flags)
         return recover(only, on: dispatcher, body)
