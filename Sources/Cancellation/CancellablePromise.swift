@@ -8,9 +8,13 @@ import Dispatch
  
  - See: `CancellableThenable`
  */
-public class CancellablePromise<T>: CancellableThenable, CancellableCatchMixin {
+public class CancellablePromise<T>: CancellableThenable, CancellableCatchMixin, HasDispatchState {
     /// Delegate `promise` for this CancellablePromise
     public let promise: Promise<T>
+    var dispatchState: DispatchState {
+        get { return promise.dispatchState }
+        set { promise.dispatchState = newValue }
+    }
     
     /// Type of the delegate `thenable`
     public typealias U = Promise<T>
