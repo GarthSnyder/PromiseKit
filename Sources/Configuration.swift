@@ -11,7 +11,7 @@ public struct NoValue: Dispatcher {
 
 public struct PMKConfiguration {
     
-    public var requireChainConfirmation = true
+    public var requireChainDispatcherConfirmation = true
     public let dd: Dispatcher = SentinelDispatcher(type: .unspecified, flags: nil)  // Default dispatcher as a function argument
     
     /// Backward compatibility: the default Dispatcher to which handlers dispatch, represented as DispatchQueues.

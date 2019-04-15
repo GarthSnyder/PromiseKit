@@ -171,7 +171,7 @@ struct DispatchState: Dispatcher {
 
         // If we are transitioning into the `.warned` confirmation state, print a warning about
         // the need to confirm the chain dispatcher.
-        if location != .warned && nextState.location == .warned && conf.requireChainConfirmation {
+        if location != .warned && nextState.location == .warned && conf.requireChainDispatcherConfirmation {
             conf.logHandler(.failedToConfirmChainDispatcher)
         }
         
