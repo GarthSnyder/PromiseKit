@@ -108,10 +108,10 @@ internal extension DispatchQueue {
 extension DispatchQueue {
     func convertToDispatcher(flags: DispatchWorkItemFlags?) -> Dispatcher {
         switch self {
-            case .unspecified: return SentinelDispatcher(type: .unspecified, flags: flags)
-            case .default:     return SentinelDispatcher(type: .default, flags: flags)
-            case .chain:       return SentinelDispatcher(type: .chain, flags: flags)
-            case .sticky:      return SentinelDispatcher(type: .sticky, flags: flags)
+            case DispatchQueue.unspecified: return SentinelDispatcher(type: .unspecified, flags: flags)
+            case DispatchQueue.default:     return SentinelDispatcher(type: .default, flags: flags)
+            case DispatchQueue.chain:       return SentinelDispatcher(type: .chain, flags: flags)
+            case DispatchQueue.sticky:      return SentinelDispatcher(type: .sticky, flags: flags)
            default:
                 if let flags = flags {
                     return self.asDispatcher(flags: flags)
